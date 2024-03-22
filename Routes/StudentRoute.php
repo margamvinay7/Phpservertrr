@@ -87,6 +87,15 @@ function promotestudents(){
     $StudentController->promotestudents();
 }
 
+function deleteStudents(){
+
+    $req = $_REQUEST; // Assuming this is how you get request data
+    $res = null; // Placeholder for response, assuming not used in this context
+    
+    $StudentController = new StudentController($req, $res);
+    $StudentController->deleteStudents();
+}
+
 $url=explode('/', trim($_SERVER['REQUEST_URI'], '/')) ;
 // echo implode("/",$url);
 // echo "<br>";
@@ -140,6 +149,9 @@ switch($current){
         break;
     case 'promotestudents':
         promotestudents(); 
+        break;
+    case 'deleteStudents':
+        deleteStudents(); 
         break;
 
 

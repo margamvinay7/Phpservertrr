@@ -11,6 +11,8 @@ CREATE TABLE Student (
     email VARCHAR(255),
     mobile VARCHAR(255),
     gender VARCHAR(255),
+    parentName VARCHAR(255),
+    parentMobile VARCHAR(255),
     year VARCHAR(255),
     joiningyear VARCHAR(255),
     address VARCHAR(255),
@@ -49,6 +51,7 @@ CREATE TABLE Periods (
 CREATE TABLE Attendance (
     id INT AUTO_INCREMENT NOT NULL,
     studentId VARCHAR(255),
+    studentName VARCHAR(255),
     date DATETIME,
     year VARCHAR(255),
     academicyear VARCHAR(255),

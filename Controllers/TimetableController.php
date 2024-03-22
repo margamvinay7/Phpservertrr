@@ -22,8 +22,8 @@ class TimetableController{
             // Connect to your database
             $db = new Database();
             $this->pdo = $db->getConnection();
-            $year = $formData['year'] ?? null;
-$academicyear = $formData['academicyear']?? null;
+            $year = trim($formData['year']) ?? null;
+$academicyear = trim($formData['academicyear'])?? null;
 $days = $formData['Days']?? null;
     
             // Begin transaction
@@ -46,7 +46,7 @@ $days = $formData['Days']?? null;
                 foreach ($day['Periods'] as $period) {
                     // Create the period record
                     $stmtPeriod = $this->pdo->prepare("INSERT INTO Periods (daysId, time, subject) VALUES (?, ?, ?)");
-                    $stmtPeriod->execute([$dayId, $period['time'], $period['subject']]);
+                    $stmtPeriod->execute([$dayId, $period['time'], trim($period['subject'])]);
                 }
             }
     
@@ -318,7 +318,7 @@ $days = $formData['Days']?? null;
                         $stmtInsertPeriod = $pdo->prepare("INSERT INTO Periods (daysId, time, subject) VALUES (:daysId, :time, :subject)");
                         $stmtInsertPeriod->bindParam(':daysId', $dayId, PDO::PARAM_INT);
                         $stmtInsertPeriod->bindParam(':time', $period['time'], PDO::PARAM_STR);
-                        $stmtInsertPeriod->bindParam(':subject', $period['subject'], PDO::PARAM_STR);
+                        $stmtInsertPeriod->bindParam(':subject', trim($period['subject']), PDO::PARAM_STR);
                         $stmtInsertPeriod->execute();
                     }
                 }
@@ -326,6 +326,7 @@ $days = $formData['Days']?? null;
                 // Commit the transaction
                 $pdo->commit();
     
+                http_response_code(200);
                 // Return success message
                 echo "Table updated";
             } else {
@@ -341,6 +342,64 @@ $days = $formData['Days']?? null;
             echo "Error: " . $e->getMessage();
         }
     }
+
+    public function deleteTimetable() {
+        try {
+            $formData = json_decode(file_get_contents('php://input'), true);
+            
+            // Validate and retrieve data from the request
+            $id = $formData['id'] ?? null;
+           
+            
+    
+            // Ensure all required data is provided
+            if ($id !== null  ) {
+                // Start a transaction
+                $db = new Database();
+                $pdo = $db->getConnection();
+                $pdo->beginTransaction();
+    
+                // Delete existing periods
+                $stmtDeletePeriods = $pdo->prepare("DELETE FROM Periods WHERE daysId IN (SELECT id FROM Days WHERE timetableId = :id)");
+                $stmtDeletePeriods->bindParam(':id', $id, PDO::PARAM_INT);
+                $stmtDeletePeriods->execute();
+    
+                // Delete existing days
+                $stmtDeleteDays = $pdo->prepare("DELETE FROM Days WHERE timetableId = :id");
+                $stmtDeleteDays->bindParam(':id', $id, PDO::PARAM_INT);
+                $stmtDeleteDays->execute();
+    
+                // Delete the existing timetable
+                $stmtDeleteTimetable = $pdo->prepare("DELETE FROM Timetable WHERE id = :id");
+                $stmtDeleteTimetable->bindParam(':id', $id, PDO::PARAM_INT);
+                $stmtDeleteTimetable->execute();
+    
+               
+               
+                // Commit the transaction
+                $pdo->commit();
+    
+                http_response_code(200);
+                // Return success message
+                echo "Table Deleted";
+            } else {
+                // Handle missing or invalid data
+                echo "Invalid data provided";
+            }
+        } catch (PDOException $e) {
+            // Rollback the transaction and handle database errors
+            $pdo->rollBack();
+            echo "Database Error: " . $e->getMessage();
+        } catch (Exception $e) {
+            // Handle other errors
+            echo "Error: " . $e->getMessage();
+        }
+    }
     
 
+    
+
+
 }
+
+

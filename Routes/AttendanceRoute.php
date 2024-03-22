@@ -35,6 +35,18 @@ function getTotalAttendance(){
     $AttendenceController->getTotalAttendance();
 }
 
+function getAttendenceByYearAcademicyearId(){
+
+    $AttendenceController= new AttendanceController();
+    $AttendenceController->getAttendenceByYearAcademicyearId();
+}
+
+function editAttendance(){
+
+    $AttendenceController= new AttendanceController();
+    $AttendenceController->editAttendance();
+}
+
 
 
 $url=explode('/', trim($_SERVER['REQUEST_URI'], '/')) ;
@@ -81,6 +93,12 @@ switch($current){
         break;
     case 'getTotalAttendance':
         getTotalAttendance();
+        break;
+    case 'getAttendenceByYearAcademicyearId':
+        getAttendenceByYearAcademicyearId();
+        break;
+    case 'editAttendance':
+        editAttendance();
         break;
     
 }

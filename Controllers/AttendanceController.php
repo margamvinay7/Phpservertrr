@@ -37,6 +37,7 @@ class AttendanceController {
                 $year = $studentAttendance['year'];
                 $academicyear = $studentAttendance['academicyear'];
                 $subjects = $studentAttendance['subjects'];
+                $studentName=$studentAttendance['name'];
 
                 // Check if attendance already exists for the student on the given date, year, and academic year
                 $stmtExist = $this->pdo->prepare("SELECT COUNT(*) FROM Attendance WHERE studentId = :studentId AND date = :date AND year = :year AND academicyear = :academicyear");
@@ -53,11 +54,13 @@ class AttendanceController {
                 }
 
                 // Insert attendance data
-                $stmtAttendance = $this->pdo->prepare("INSERT INTO Attendance (studentId, date, year, academicyear) VALUES (:studentId, :date, :year, :academicyear)");
+                $stmtAttendance = $this->pdo->prepare("INSERT INTO Attendance (studentId, date, year, academicyear,studentName) VALUES (:studentId, :date, :year, :academicyear,:studentName)");
                 $stmtAttendance->bindParam(':studentId', $studentId, PDO::PARAM_INT);
                 $stmtAttendance->bindParam(':date', $date, PDO::PARAM_STR);
                 $stmtAttendance->bindParam(':year', $year, PDO::PARAM_STR);
                 $stmtAttendance->bindParam(':academicyear', $academicyear, PDO::PARAM_STR);
+                
+                $stmtAttendance->bindParam(':studentName', $studentName, PDO::PARAM_STR);
                 $stmtAttendance->execute();
 
                 // Retrieve the ID of the inserted attendance record
@@ -257,44 +260,108 @@ class AttendanceController {
     }
 
 
+ /**
+  * The PHP code consists of functions to retrieve and manipulate attendance data for students,
+  * including getting total attendance, fetching attendance records by year and academic year, and
+  * editing attendance details.
+  */
+
+    // public function getTotalAttendance() {
+    //     $studentId=$_GET['id'];
+    //     $years=["MBBS-I", "MBBS-II", "MBBS-III", "MBBS-IV"];
+    //     $responseData = [];
+    //     $db = new Database();
+    //         $this->pdo = $db->getConnection();
+    //         try {
+    //             foreach ($years as $year) {
+    //                 $attendance = $this->getAttendanceByYear($studentId, $year);
+    
+    //                 $totalSubjectsCount = 0;
+    //                 $totalPresentSubjectsCount = 0;
+    //                 $academicyear = '';
+    
+    //                 foreach ($attendance as $record) {
+    //                     $totalSubjectsCount += count($record['subjects']);
+    //                     foreach ($record['subjects'] as $subject) {
+    //                         if ($subject['present']) {
+    //                             $totalPresentSubjectsCount++;
+    //                         }
+    //                     }
+    //                 }
+    
+    //                 $responseData[] = [
+    //                     'year' => $year,
+    //                     'totalSubjectsCount' => $totalSubjectsCount,
+    //                     'totalPresentSubjectsCount' => $totalPresentSubjectsCount,
+    //                     'academicyear' => $record['academicyear'],
+    //                 ];
+    //             }
+    //             header('content-type:application/json');
+    //             echo json_encode($responseData);
+    //         } catch (PDOException $e) {
+    //             echo ['error' => $e->getMessage()];
+    //         } catch (Exception $e) {
+    //             echo ['error' => $e->getMessage()];
+    //         }
+    //     }
+
     public function getTotalAttendance() {
-        $studentId=$_GET['id'];
-        $years=["MBBS-I", "MBBS-II", "MBBS-III", "MBBS-IV"];
+        $studentId = $_GET['id'];
+        $years = ["MBBS-I", "MBBS-II", "MBBS-III", "MBBS-IV"];
         $responseData = [];
         $db = new Database();
-            $this->pdo = $db->getConnection();
-            try {
-                foreach ($years as $year) {
-                    $attendance = $this->getAttendanceByYear($studentId, $year);
+        $this->pdo = $db->getConnection();
+        try {
+            foreach ($years as $year) {
+                $attendance = $this->getAttendanceByYear($studentId, $year);
+                $totalSubjectsCount = 0;
+                $totalTSubjectsCount = 0; // Total subjects with (T)
+                $totalPSubjectsCount = 0; // Total subjects with (P)
+                $totalTPresentSubjectsCount = 0; // Total subjects with (T) and present true
+                $totalPPresentSubjectsCount = 0; // Total subjects with (P) and present true
+                $academicyear = '';
     
-                    $totalSubjectsCount = 0;
-                    $totalPresentSubjectsCount = 0;
-                    $academicyear = '';
-    
-                    foreach ($attendance as $record) {
-                        $totalSubjectsCount += count($record['subjects']);
-                        foreach ($record['subjects'] as $subject) {
+                foreach ($attendance as $record) {
+                    foreach ($record['subjects'] as $subject) {
+                        $totalSubjectsCount++;
+                        if (strpos($subject['subject'], '(T)') !== false) {
+                            
+                            $totalTSubjectsCount++;
                             if ($subject['present']) {
-                                $totalPresentSubjectsCount++;
+                                $totalTPresentSubjectsCount++;
+                            }
+                        }
+                        if (strpos($subject['subject'], '(P)') !== false) {
+                            $totalPSubjectsCount++;
+                            
+                            if ($subject['present']) {
+                                $totalPPresentSubjectsCount++;
                             }
                         }
                     }
-    
-                    $responseData[] = [
-                        'year' => $year,
-                        'totalSubjectsCount' => $totalSubjectsCount,
-                        'totalPresentSubjectsCount' => $totalPresentSubjectsCount,
-                        'academicyear' => $record['academicyear'],
-                    ];
+                    $academicyear = $record['academicyear']; // Assuming academic year is the same for all records within the same year
                 }
-                header('content-type:application/json');
-                echo json_encode($responseData);
-            } catch (PDOException $e) {
-                echo ['error' => $e->getMessage()];
-            } catch (Exception $e) {
-                echo ['error' => $e->getMessage()];
+    
+                $responseData[] = [
+                    'year' => $year,
+                    'totalSubjectsCount' => $totalSubjectsCount,
+                    'totalTSubjectsCount' => $totalTSubjectsCount,
+                    'totalPSubjectsCount' => $totalPSubjectsCount,
+                    'totalTPresentSubjectsCount' => $totalTPresentSubjectsCount,
+                    'totalPPresentSubjectsCount' => $totalPPresentSubjectsCount,
+                    'academicyear' => $academicyear,
+                ];
             }
+            header('content-type:application/json');
+            echo json_encode($responseData);
+        } catch (PDOException $e) {
+            echo json_encode(['error' => $e->getMessage()]);
+        } catch (Exception $e) {
+            echo json_encode(['error' => $e->getMessage()]);
         }
+    }
+    
+    
     
         private function getAttendanceByYear($studentId, $year) {
             $stmt = $this->pdo->prepare("SELECT * FROM Attendance WHERE studentId = :studentId AND year = :year");
@@ -317,7 +384,113 @@ class AttendanceController {
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
     
+
+
+
+        public function getAttendenceByYearAcademicyearId(){
+            $data = json_decode(file_get_contents('php://input'),true);
+            try {
+                // Connect to the database
+                $db = new Database();
+            $this->pdo = $db->getConnection();
+            $year = $data['year'];
+            $academicYear = $data['academicYear'];
+            $date = $data['date'];
+            error_log("edit att".$year.$date.$academicYear);
+                // Check if year, academic year, and date are sent via POST
+                if (isset($data['year']) && isset($data['academicYear']) && isset($data['date'])) {
+                    // Retrieve year, academic year, and date from POST data
+                   
+            
+                    // Fetch attendance records based on year, academic year, and date
+                    $stmt = $this->pdo->prepare("SELECT * FROM Attendance WHERE year = :year AND academicyear = :academicYear AND date = :date");
+                    $stmt->bindParam(':year', $year);
+                    $stmt->bindParam(':academicYear', $academicYear);
+                    $stmt->bindParam(':date', $date);
+                    $stmt->execute();
+                    $attendances = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+                    // Prepare array to store attendance data with subjects
+                    $attendanceDataWithSubjects = array();
+            
+                    // Iterate through attendance records
+                    foreach ($attendances as $attendance) {
+                        // Retrieve attendance ID
+                        $attendanceId = $attendance['id'];
+            
+                        // Fetch attendance subjects based on attendance ID
+                        $stmt = $this->pdo->prepare("SELECT * FROM Subject WHERE attendanceId = :attendanceId");
+                        $stmt->bindParam(':attendanceId', $attendanceId);
+                        $stmt->execute();
+                        $subjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+                        // Combine attendance and subjects into an array
+                        $attendanceDataWithSubjects[] = array(
+                            'attendance' => $attendance,
+                            'subjects' => $subjects
+                        );
+                    }
+            
+                    // Encode the data as JSON and send it to the frontend
+                    header('Content-Type: application/json');
+                    echo json_encode($attendanceDataWithSubjects);
+                } else {
+                    echo "Year, academic year, and date are required.";
+                }
+            } catch (PDOException $e) {
+                echo "Error: " . $e->getMessage();
+            }
+        }
+
+
+        public function editAttendance(){
+            $data = json_decode(file_get_contents('php://input'),true);
+            $subjectArrays=$data['subjects'];
+            error_log("sub".json_encode($subjectArrays));
+            if($subjectArrays!==null){
+
+            
+            try{
+                $db = new Database();
+                $this->pdo = $db->getConnection();
+                foreach ($subjectArrays as $subjectArray) {
+                    foreach ($subjectArray as $subject) {
+                        $subjectId = $subject['id'];
+                        $time = $subject['time'];
+                        $subjectName = $subject['subject'];
+                        $presentvalue = $subject['present'] ? 1 : 0;
+                        $present = $presentvalue;
+    
+                        // Prepare SQL statement
+                        $sql = "UPDATE Subject 
+                                SET time = :time, 
+                                    subject = :subject, 
+                                    present = :present 
+                                WHERE id = :id";
+    
+                        // Prepare and execute the statement
+                        $stmt = $this->pdo->prepare($sql);
+                        $stmt->bindParam(':time', $time);
+                        $stmt->bindParam(':subject', $subjectName);
+                        $stmt->bindParam(':present', $present);
+                        $stmt->bindParam(':id', $subjectId);
+    
+                        $stmt->execute();
+                    }
+                }
+
+            }catch(PDOException $e){
+                echo "Error: " . $e->getMessage();
+            }catch(Exception $e){
+                echo "Error: ".$e->getMessage();
+            }
+            }
+        }
+
+
 }
+
+
 
     
 

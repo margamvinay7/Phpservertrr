@@ -37,6 +37,14 @@ function updateTimetable(){
 
 }
 
+function deleteTimetable(){
+
+    $timetableController=new TimetableController();
+    $timetableController->deleteTimetable();
+
+
+}
+
 
 
 $url=explode('/', trim($_SERVER['REQUEST_URI'], '/')) ;
@@ -79,6 +87,9 @@ switch($current){
         break;
     case 'updateTimetable':
         updateTimetable();
+        break;
+    case 'deleteTimetable':
+        deleteTimetable();
         break;
     
 }
