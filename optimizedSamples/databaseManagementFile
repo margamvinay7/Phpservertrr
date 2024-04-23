@@ -1,0 +1,41 @@
+
+
+namespace Controller;
+
+use PDO;
+
+class ResultController {
+    private $pdo;
+
+    // Constructor to inject the database connection
+    public function __construct(PDO $pdo) {
+        $this->pdo = $pdo;
+    }
+
+    public function createResults() {
+        // Your method implementation using $this->pdo
+    }
+
+    // Other methods...
+}
+
+// in other files
+
+
+
+use Core\Database;
+use PDO;
+
+// Function to obtain the database connection
+function getDatabaseConnection(): PDO {
+    $db = new Database();
+    return $db->getConnection();
+}
+
+<?php
+
+// Obtain the database connection
+$pdo = getDatabaseConnection();
+
+// Instantiate the ResultController with the database connection injected
+$resultController = new ResultController($pdo);

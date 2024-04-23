@@ -38,7 +38,7 @@ class Database{
             return $pdo;
         } catch (PDOException $e) {
             // If an exception occurs, handle the error
-            error_log('err'.$e->getMessage());
+           
             echo "Database connection failed: " . $e->getMessage();
             // Optionally, log the error or handle it in a different way
             // For example, you could throw a custom exception to propagate the error to the caller

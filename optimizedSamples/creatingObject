@@ -1,0 +1,23 @@
+
+
+use Controller\ResultController;
+
+// Instantiate the ResultController class
+$resultController = new ResultController();
+
+// Function to create results
+function createResults(){
+    global $resultController;
+    $resultController->createResults();
+}
+
+// Function to get assessment year and academic year
+function getAssessmentyearAndAcademicyear(){
+    global $resultController;
+    $resultController->getAssessmentyearAndAcademicyear();
+}
+
+// Other functions...
+
+// URL parsing and function invocation...
+

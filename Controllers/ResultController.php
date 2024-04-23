@@ -2,9 +2,6 @@
 
 namespace Controller;
 
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: *');
-header('Access-Control-Allow-Headers: *');
 
 require 'vendor/autoload.php'; // Include Composer's autoloader
 
@@ -22,7 +19,7 @@ public function createResults() {
         $this->pdo = $db->getConnection();
         if ($_SERVER["REQUEST_METHOD"] == "POST") {  
         $name=$_POST['name'];
-        error_log('name'.$name);
+        
 
         }
         
@@ -39,7 +36,7 @@ public function createResults() {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();
         $headerRow = $sheet->rangeToArray('A1:' . $highestColumn . '1', NULL, TRUE, FALSE)[0];
-        // error_log('ex'.json_encode($sheet));
+       
         for ($row = 2; $row <= $highestRow; $row++) {
             $rowData = $sheet->rangeToArray('A' . $row . ':' . $highestColumn . $row, NULL, TRUE, FALSE)[0];
             $data = array_combine($headerRow, $rowData);
@@ -50,8 +47,8 @@ public function createResults() {
             $year = $data['Year'];
             $academicyear = $data['Academicyear'];
             $studentName = $data['StudentName'];
-            $status = $data['Status'];
-            error_log('d'.json_encode(array($assessment=>$assessment,$rollNo=>$rollNo)));
+            $finalstatus = $data['FinalStatus'];
+           
             $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM Assessment WHERE studentId = ? AND year = ? AND academicyear = ? AND assessment = ?");
             $stmt->execute([$rollNo, $year, $academicyear, $assessment]);
             $existingCount = $stmt->fetchColumn();
@@ -66,25 +63,26 @@ public function createResults() {
                 $subject = $data["Department$i"];
                 $theoryMarks = $data["Theory$i"];
                 $practicalMarks = $data["Practical$i"];
-
+                $status=$data["Status$i"];
                 $subjects[] = [
                     'subject' => $subject,
                     'theoryMarks' => $theoryMarks,
-                    'practicalMarks' => $practicalMarks
+                    'practicalMarks' => $practicalMarks,
+                    'status'=>$status,
                 ];
-            error_log('sub'.json_encode($subjects));
+           
             }
             $this->pdo->beginTransaction();
             // Insert data into database
-           $stmt = $this->pdo->prepare("INSERT INTO Assessment (assessment, studentId, year, academicyear, studentName, status,name) VALUES (?, ?, ?, ?, ?, ?,?)");
+           $stmt = $this->pdo->prepare("INSERT INTO Assessment (assessment, studentId, year, academicyear, studentName, finalstatus,name) VALUES (?, ?, ?, ?, ?, ?,?)");
 
-        $stmt->execute([$assessment, $rollNo, $year, $academicyear, $studentName, $status,$name]);
+        $stmt->execute([$assessment, $rollNo, $year, $academicyear, $studentName, $finalstatus,$name]);
 
            $assessmentId = $this->pdo->lastInsertId();
 
            foreach ($subjects as $subjectData) {
-               $stmt = $this->pdo->prepare("INSERT INTO AssessmentSubject (assessmentId, subject, theoryMarks, practicalMarks) VALUES (?, ?, ?, ?)");
-               $stmt->execute([$assessmentId, $subjectData['subject'], $subjectData['theoryMarks'], $subjectData['practicalMarks']]);
+               $stmt = $this->pdo->prepare("INSERT INTO AssessmentSubject (assessmentId, subject, theoryMarks, practicalMarks,status) VALUES (?, ?, ?, ?,?)");
+               $stmt->execute([$assessmentId, $subjectData['subject'], $subjectData['theoryMarks'], $subjectData['practicalMarks'],$subjectData['status']]);
            }
 
            $this->pdo->commit();
@@ -185,7 +183,7 @@ public function createResults() {
             
             // Fetch all the AssessmentSubjects for the Assessment ID
             $assessmentSubjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
-error_log('t'.json_encode($assessmentSubjects));
+
             // Return the assessment as JSON
             header('content-type:application/json');
             echo json_encode($assessmentSubjects);
@@ -211,7 +209,7 @@ error_log('t'.json_encode($assessmentSubjects));
     
             // Fetch the assessments
             $assessments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            error_log('Assessments: ' . json_encode($assessments));
+            
     
             // Return the assessments as JSON
             header('content-type:application/json');
@@ -230,7 +228,7 @@ error_log('t'.json_encode($assessmentSubjects));
 $academicYear = $_GET['academicyear']; // Assuming the academic year is sent in a POST request
 $studentId = $_GET['studentId']; // Assuming the student ID is sent in a POST request
 $assessment = $_GET['assessment'];
-error_log('r'.json_encode(array($year=>$year,$academicYear=>$academicYear)));
+
 
     
         try {
@@ -246,7 +244,7 @@ error_log('r'.json_encode(array($year=>$year,$academicYear=>$academicYear)));
     
             // Fetch the results
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            error_log('Results: ' . json_encode($results));
+         
     
             // Return the results as JSON
             header('content-type:application/json');
@@ -254,7 +252,7 @@ error_log('r'.json_encode(array($year=>$year,$academicYear=>$academicYear)));
         } catch (PDOException $e) {
             // Handle any PDOException that occurred during connection
             echo "Error: " . $e->getMessage();
-            error_log('er'.$e->getMessage());
+          
         }
     }
     
@@ -300,16 +298,8 @@ error_log('r'.json_encode(array($year=>$year,$academicYear=>$academicYear)));
             // Fetch all distinct assessments
             $assessments = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-            // $stmtname = $this->pdo->prepare("SELECT DISTINCT  `assessment`,`name`  FROM Assessment WHERE year = :year AND academicyear = :academicyear");
-            // $stmtname->bindParam(':year', $year);
-            // $stmtname->bindParam(':academicyear', $academicyear);
+            
     
-            // // Execute the query
-            // $stmtname->execute();
-    
-            // // Fetch all distinct assessments
-            // $name = $stmtname->fetchAll(PDO::FETCH_ASSOC);
-    error_log(json_encode(array($assessments)));
             // Return the assessments as JSON
             header('Content-Type: application/json');
             echo json_encode($assessments);
@@ -390,6 +380,8 @@ error_log('r'.json_encode(array($year=>$year,$academicYear=>$academicYear)));
 
     public function updateAssessment() {
         $db = new Database();
+
+
         $this->pdo = $db->getConnection();
     
         // Get the parameters from the request
@@ -405,13 +397,18 @@ error_log('r'.json_encode(array($year=>$year,$academicYear=>$academicYear)));
     
             // Update the assessment subjects
             foreach ($assessmentSubject as $subject) {
-                $stmt = $this->pdo->prepare("UPDATE AssessmentSubject SET subject = :subject, theoryMarks = :theoryMarks, practicalMarks = :practicalMarks WHERE id = :subjectId");
+                $stmt = $this->pdo->prepare("UPDATE AssessmentSubject SET subject = :subject, theoryMarks = :theoryMarks, practicalMarks = :practicalMarks , status = :status WHERE id = :subjectId");
                 $stmt->bindParam(':subject', $subject['subject']);
+                $stmt->bindParam(':status', $subject['status']);
                 $stmt->bindParam(':theoryMarks', $subject['theoryMarks'], PDO::PARAM_INT);
                 $stmt->bindParam(':practicalMarks', $subject['practicalMarks'], PDO::PARAM_INT);
                 $stmt->bindParam(':subjectId', $subject['id']);
                 $stmt->execute();
             }
+
+            $stmt = $this->pdo->prepare("UPDATE Assessment SET finalstatus = CASE WHEN EXISTS (SELECT * FROM AssessmentSubject WHERE assessmentId = :assessmentId AND status = 'Fail') THEN 'Fail' ELSE 'Pass' END WHERE id = :assessmentId");
+        $stmt->bindParam(':assessmentId', $id);
+        $stmt->execute();
     
             // Return the updated assessment
             header('Content-Type: application/json');
@@ -431,7 +428,7 @@ error_log('r'.json_encode(array($year=>$year,$academicYear=>$academicYear)));
         $year = $requestData['year'];
         $academicyear = $requestData['academicyear'];
         $assessment = $requestData['assessment'];
-        error_log('t'.$year.$academicyear.$assessment);
+       
         if($year !==null && $academicyear!==null && $assessment!==null){
 
         
@@ -475,14 +472,7 @@ error_log('r'.json_encode(array($year=>$year,$academicYear=>$academicYear)));
         $assessment = $requestData['assessment']?? null;
         $newName = $requestData['newName']?? null; 
 
-        // $year = 'MBBS-I';
-        // $academicyear ='2024-2025 ';
-        // $assessment = $requestData['assessment']
-        // $newName = $requestData['newName'] 
         
-        
-        // New name for the assessment
-        error_log('t'.json_encode($requestData));
         // Check if all required parameters are present
         if($year !== null && $academicyear !== null && $assessment !== null && $newName !== null) {
             try {
@@ -493,7 +483,7 @@ error_log('r'.json_encode(array($year=>$year,$academicYear=>$academicYear)));
                 $stmt->bindParam(':assessment', $assessment);
                 $stmt->bindParam(':newName', $newName);
                 $stmt->execute();
-    error_log('testnamje'.json_encode(array($year,$assessment,$academicyear,$newName)));
+   
                 // Check if any assessment was updated
                 $rowCount = $stmt->rowCount();
                 if ($rowCount > 0) {
@@ -515,6 +505,115 @@ error_log('r'.json_encode(array($year=>$year,$academicYear=>$academicYear)));
             // http_response_code(400);
             echo "Missing parameters";
         }
+    }
+
+
+    public function getAttendanceReports(){
+        $academicyear = $_GET['academicyear'];
+            $year = $_GET['year'];
+            $assessment = $_GET['assessment'];
+        // $academicyear = '2024-2025';
+        //     $year = 'MBBS-I';
+        //     $assessment = "prefinal Assessment" ;
+
+        
+
+        try {
+
+            $db = new Database();
+            $this->pdo = $db->getConnection();
+
+           // SQL query
+    $sql = "
+    SELECT 
+        A.id AS assessment_id,
+        A.studentId,
+        A.year AS assessment_year,
+        A.studentName,
+        A.name AS assessment_name,
+        A.finalstatus,
+        A.academicyear,
+        ASU.id AS assessment_subject_id,
+        ASU.subject,
+        ASU.theoryMarks,
+        ASU.practicalMarks,
+        ASU.status,
+        S.id AS id,
+        S.fullName AS student_fullName,
+        S.email AS student_email,
+        S.mobile AS student_mobile,
+        S.gender AS student_gender,
+        S.parentName AS parent_name,
+        S.parentMobile AS parent_mobile
+    FROM 
+        Assessment AS A
+    JOIN 
+        AssessmentSubject AS ASU ON A.id = ASU.assessmentId
+    JOIN 
+        Student AS S ON A.studentId = S.id
+    WHERE 
+        A.academicyear = :academicyear
+        AND A.year = :year
+        AND A.assessment = :assessment";
+    
+    // Prepare the SQL statement
+    $stmt = $this->pdo->prepare($sql);
+    
+    // Bind parameters
+   
+    $stmt->bindParam(':academicyear', $academicyear);
+    $stmt->bindParam(':year', $year);
+    $stmt->bindParam(':assessment', $assessment);
+    
+    // Execute the SQL statement
+    $stmt->execute();
+    
+    // Fetch all the rows as an associative array
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Organize data by student
+    $data = array();
+    foreach ($results as $row) {
+        $studentId = $row['studentId'];
+        if (!isset($data[$studentId])) {
+            // Initialize student data if not already present
+            $data[$studentId] = array(
+                
+                    'id'=>$row['id'],
+                    'fullName' => $row['student_fullName'],
+                    
+                    'mobile' => $row['student_mobile'],
+                    
+                    'parentName' => $row['parent_name'],
+                    'parentMobile' => $row['parent_mobile'],
+                    'email' => $row['student_email'],
+                    'assessmentname' => $row['assessment_name'],
+                    'finalstatus' => $row['finalstatus'],
+                    'assessments' => array()
+            );
+        }
+        
+        // Add assessment details
+        $data[$studentId]['assessments'][] = array(
+            'assessmentid' => $row['assessment_id'],
+            'assessmentyear' => $row['assessment_year'],
+            'assessmentname' => $row['assessment_name'], 
+            'academicyear' => $row['academicyear'],
+            'assessmentsubjectid' => $row['assessment_subject_id'],
+            'subject' => $row['subject'],
+            'status' => $row['status'],
+            'theoryMarks' => $row['theoryMarks'],
+            'practicalMarks' => $row['practicalMarks']
+        );
+    }
+            
+            // Output the result
+            header('content-type:application/json');
+            echo json_encode(array_values($data));
+        } catch(PDOException $e) {
+            echo "Error: " . $e->getMessage();
+        }
+
     }
     
     

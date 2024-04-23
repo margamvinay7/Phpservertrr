@@ -2,9 +2,6 @@
 
 namespace Controller;
 
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: *');
-header('Access-Control-Allow-Headers: *');
 
 require 'vendor/autoload.php'; // Include Composer's autoloader
 
@@ -47,7 +44,7 @@ class AttendanceController {
                 $stmtExist->bindParam(':academicyear', $academicyear, PDO::PARAM_STR);
                 $stmtExist->execute();
                 $isExist = $stmtExist->fetchColumn();
-                error_log('duplicte'.$isExist);
+                
 
                 if ($isExist > 0) {
                     throw new Exception("Attendance already marked for student $studentId");
@@ -74,7 +71,7 @@ class AttendanceController {
                     $stmtSubject->bindParam(':subject', $subject['subject'], PDO::PARAM_STR);
 
                     $present = $subject['present'] ? 1 : 0;
-                    // error_log("test present".$subject['present']);
+                  
     $stmtSubject->bindParam(':present', $present, PDO::PARAM_INT);
     
                     $stmtSubject->execute();
@@ -97,7 +94,7 @@ class AttendanceController {
                 $this->pdo->rollBack();
             }
             http_response_code(208);
-            error_log('er'.$e->getMessage());
+            
             echo "Error: " . $e->getMessage();
         }
 
@@ -396,7 +393,7 @@ class AttendanceController {
             $year = $data['year'];
             $academicYear = $data['academicYear'];
             $date = $data['date'];
-            error_log("edit att".$year.$date.$academicYear);
+            
                 // Check if year, academic year, and date are sent via POST
                 if (isset($data['year']) && isset($data['academicYear']) && isset($data['date'])) {
                     // Retrieve year, academic year, and date from POST data
@@ -446,7 +443,7 @@ class AttendanceController {
         public function editAttendance(){
             $data = json_decode(file_get_contents('php://input'),true);
             $subjectArrays=$data['subjects'];
-            error_log("sub".json_encode($subjectArrays));
+           
             if($subjectArrays!==null){
 
             
@@ -487,6 +484,205 @@ class AttendanceController {
             }
         }
 
+
+        public function getAttendanceForReportsByMonth(){
+            $year=$_GET['year'];
+            $academicyear=$_GET['academicyear'];
+            $mbbsyear=$_GET['mbbsyear'];
+            $month=$_GET['month'];
+            try{
+                $db = new Database();
+                $this->pdo = $db->getConnection();
+                $responseData = array();
+
+        // Prepare and execute SQL query
+        $query = "SELECT Student.id,Student.fullName, Student.parentName, Student.mobile ,Student.email, Student.parentMobile, Subject.subject, Subject.present
+        FROM Attendance
+        JOIN Subject ON Attendance.id = Subject.attendanceId
+        JOIN Student ON Attendance.studentId = Student.id
+        WHERE YEAR(Attendance.date) = :year
+        AND MONTH(Attendance.date) = :month
+        AND Attendance.academicyear = :academicyear AND Attendance.year=:mbbsyear
+        ORDER BY Attendance.date";
+                    
+       
+
+        $stmt = $this->pdo->prepare($query);
+        $stmt->bindParam(':year', $year);
+        $stmt->bindParam(':academicyear', $academicyear);
+        $stmt->bindParam(':mbbsyear', $mbbsyear);
+        $stmt->bindParam(':month', $month);
+        $stmt->execute();
+
+        
+
+        $studentAttendanceData = array(); // Array to hold attendance data for each student
+        $studentTotals = array(); // Array to hold total counts for each student
+        
+        // Fetch data and organize it
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            // Initialize totals for the current student if not already initialized
+            if (!isset($studentTotals[$row['id']])) {
+                $studentTotals[$row['id']] = array(
+                    'totalSubjectsCount' => 0,
+                    'totalTSubjectsCount' => 0,
+                    'totalPSubjectsCount' => 0,
+                    'totalTPresentSubjectsCount' => 0,
+                    'totalPPresentSubjectsCount' => 0
+                );
+            }
+        
+            // Update totals for the current student
+            $studentTotals[$row['id']]['totalSubjectsCount']++;
+            if (strpos($row['subject'], '(T)') !== false) {
+                $studentTotals[$row['id']]['totalTSubjectsCount']++;
+                if ($row['present']) {
+                    $studentTotals[$row['id']]['totalTPresentSubjectsCount']++;
+                }
+            }
+            if (strpos($row['subject'], '(P)') !== false) {
+                $studentTotals[$row['id']]['totalPSubjectsCount']++;
+                if ($row['present']) {
+                    $studentTotals[$row['id']]['totalPPresentSubjectsCount']++;
+                }
+            }
+        
+            // Add attendance data for the current student if not already added
+            if (!isset($studentAttendanceData[$row['id']])) {
+                $studentAttendanceData[$row['id']] = array(
+                    'id'=>$row['id'],
+                    'fullName' => $row['fullName'],
+                    'mobile'=>$row['mobile'],
+                    'email'=>$row['email'],
+                    'parentName' => $row['parentName'],
+                    'parentMobile' => $row['parentMobile'],
+                    'attendance' => array()
+                );
+            }
+        
+            
+        }
+        
+        // Merge total counts with attendance data for each student
+        foreach ($studentAttendanceData as $studentName => &$studentData) {
+            $studentData = array_merge($studentData, $studentTotals[$studentName]);
+        }
+        unset($studentData); // unset the reference to avoid unwanted variable modification
+        
+        // Prepare final response data
+        $responseDataFinal = array(
+            'year' => $year,
+            'mbbsyear' => $mbbsyear,
+            'month' => $month,
+            'academicyear' => $academicyear,
+            'studentAttendanceData' => array_values($studentAttendanceData) // re-index the array
+        );
+       
+        header('Content-Type: application/json');
+        echo json_encode($responseDataFinal);
+            }
+         catch (PDOException $e) {
+            // Handle database error
+            echo "Error: " . $e->getMessage();
+        }
+        }
+
+
+        public function getAttendanceForReportsByMbbsYear(){
+            $academicyear=$_GET['academicyear'];
+            $mbbsyear=$_GET['mbbsyear'];
+            try{
+                $db = new Database();
+                $this->pdo = $db->getConnection();
+                $responseData = array();
+
+        // Prepare and execute SQL query
+        $query = "SELECT Student.id,Student.fullName, Student.parentName, Student.mobile ,Student.email, Student.parentMobile, Subject.subject, Subject.present
+        FROM Attendance
+        JOIN Subject ON Attendance.id = Subject.attendanceId
+        JOIN Student ON Attendance.studentId = Student.id
+        WHERE  Attendance.academicyear = :academicyear AND Attendance.year=:mbbsyear
+        ORDER BY Attendance.date";
+                    
+       
+
+        $stmt = $this->pdo->prepare($query);
+        // $stmt->bindParam(':year', $year);
+        $stmt->bindParam(':academicyear', $academicyear);
+        $stmt->bindParam(':mbbsyear', $mbbsyear);
+        // $stmt->bindParam(':month', $month);
+        $stmt->execute();
+
+       
+
+        $studentAttendanceData = array(); // Array to hold attendance data for each student
+        $studentTotals = array(); // Array to hold total counts for each student
+        
+        // Fetch data and organize it
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            // Initialize totals for the current student if not already initialized
+            if (!isset($studentTotals[$row['id']])) {
+                $studentTotals[$row['id']] = array(
+                    'totalSubjectsCount' => 0,
+                    'totalTSubjectsCount' => 0,
+                    'totalPSubjectsCount' => 0,
+                    'totalTPresentSubjectsCount' => 0,
+                    'totalPPresentSubjectsCount' => 0
+                );
+            }
+        
+            // Update totals for the current student
+            $studentTotals[$row['id']]['totalSubjectsCount']++;
+            if (strpos($row['subject'], '(T)') !== false) {
+                $studentTotals[$row['id']]['totalTSubjectsCount']++;
+                if ($row['present']) {
+                    $studentTotals[$row['id']]['totalTPresentSubjectsCount']++;
+                }
+            }
+            if (strpos($row['subject'], '(P)') !== false) {
+                $studentTotals[$row['id']]['totalPSubjectsCount']++;
+                if ($row['present']) {
+                    $studentTotals[$row['id']]['totalPPresentSubjectsCount']++;
+                }
+            }
+        
+            // Add attendance data for the current student if not already added
+            if (!isset($studentAttendanceData[$row['id']])) {
+                $studentAttendanceData[$row['id']] = array(
+                    'id'=>$row['id'],
+                    'fullName' => $row['fullName'],
+                    'mobile'=>$row['mobile'],
+                    'email'=>$row['email'],
+                    'parentName' => $row['parentName'],
+                    'parentMobile' => $row['parentMobile'],
+                    'attendance' => array()
+                );
+            }
+        
+           
+        }
+        
+        // Merge total counts with attendance data for each student
+        foreach ($studentAttendanceData as $studentName => &$studentData) {
+            $studentData = array_merge($studentData, $studentTotals[$studentName]);
+        }
+        unset($studentData); // unset the reference to avoid unwanted variable modification
+        
+        // Prepare final response data
+        $responseDataFinal = array(
+            'mbbsyear' => $mbbsyear,
+            'academicyear' => $academicyear,
+            'studentAttendanceData' => array_values($studentAttendanceData) // re-index the array
+        );
+       
+        header('Content-Type: application/json');
+        echo json_encode($responseDataFinal);
+            }
+         catch (PDOException $e) {
+            // Handle database error
+            echo "Error: " . $e->getMessage();
+        }
+        }
 
 }
 

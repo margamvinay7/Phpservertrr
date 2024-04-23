@@ -1,8 +1,6 @@
 <?php
 namespace Controller;
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: *');
-header('Access-Control-Allow-Headers: *');
+
 
 
 use Core\Database;
@@ -67,11 +65,7 @@ $days = $formData['Days']?? null;
             // Rollback transaction
             $this->pdo->rollBack();
     
-            // Handle database errors
-            // http_response_code(400);
-            error_log("data".json_encode($year = $formData['year']));
-            error_log("data".json_encode($academicyear = $formData['academicyear']));
-            error_log("data".json_encode($days = $formData['Days']));
+           
             echo json_encode(array("error" => "Database Error: " . $e->getMessage()));
         } catch (Exception $e) {
             // Handle other errors

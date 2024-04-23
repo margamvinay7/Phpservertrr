@@ -75,7 +75,7 @@ CREATE TABLE Assessment (
     year VARCHAR(255),
     studentName VARCHAR(255),
     name VARCHAR(255),
-    status VARCHAR(255),
+    finalstatus VARCHAR(255),
     academicyear VARCHAR(255),
     assessment VARCHAR(255),
     PRIMARY KEY (id),
@@ -88,6 +88,7 @@ CREATE TABLE AssessmentSubject (
     subject VARCHAR(255),
     theoryMarks INT,
     practicalMarks INT,
+    status VARCHAR(255)
     PRIMARY KEY (id),
     FOREIGN KEY (assessmentId) REFERENCES Assessment(id)
 );

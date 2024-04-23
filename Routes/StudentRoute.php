@@ -2,9 +2,7 @@
 
 <?php
 
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: *');
-header('Access-Control-Allow-Headers: *');
+
 use Controller\StudentController;
 
 
@@ -95,6 +93,14 @@ function deleteStudents(){
     $StudentController = new StudentController($req, $res);
     $StudentController->deleteStudents();
 }
+function getAllYearsAndAcademicYears(){
+
+    $req = $_REQUEST; // Assuming this is how you get request data
+    $res = null; // Placeholder for response, assuming not used in this context
+    
+    $StudentController = new StudentController($req, $res);
+    $StudentController->getAllYearsAndAcademicYears();
+}
 
 $url=explode('/', trim($_SERVER['REQUEST_URI'], '/')) ;
 // echo implode("/",$url);
@@ -152,6 +158,9 @@ switch($current){
         break;
     case 'deleteStudents':
         deleteStudents(); 
+        break;
+    case 'getAllYearsAndAcademicYears':
+        getAllYearsAndAcademicYears(); 
         break;
 
 

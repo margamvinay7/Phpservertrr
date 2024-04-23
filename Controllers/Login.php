@@ -87,7 +87,7 @@ public function loginuser() {
                 }
             }
         } catch (PDOException $e) {
-            error_log('err'.$e->getMessage());
+           
             echo "Error: " . $e->getMessage();
         }
     } else {
