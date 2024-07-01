@@ -19,14 +19,7 @@ class Database{
 
         $dsn="mysql:host={$host};dbname={$dbname};charset=utf8";
 
-        // $host="srv506.hstgr.io";
-        // $dbname="u982810731_trrmedical";
-        
-        // $user="u982810731_vinay";
-        // $password="Margam@0710";
-
-        // $dsn="mysql:host={$host};dbname={$dbname};charset=utf8";
-
+       
         try {
             // Attempt to establish a database connection
             $pdo = new PDO($dsn, $user, $password);
